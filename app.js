@@ -1,5 +1,5 @@
 import { FOUNDERS, TESTIMONIALS } from './content.js';
-import { PACKAGES, ADDON, calculateTotal, generateSessionId, buildSheetPayload } from './booking.js';
+import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
 
 const SHEETS_WEBAPP_URL = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE'; // see google-apps-script/SETUP.md
 
@@ -135,6 +135,102 @@ function renderPackageStep() {
   });
 }
 
+function renderScheduleStep() {
+  const el = document.getElementById('booking-step-schedule');
+  const pkg = PACKAGES[bookingState.packageId];
+  el.innerHTML = `
+    <h2 class="font-display text-2xl font-semibold text-ink">Pick a date</h2>
+    <p class="mt-1 font-sans text-sm text-ink/60">${pkg ? `Your ${pkg.name} session runs about ${getSlotMinutes(bookingState.packageId)} minutes.` : ''}</p>
+    <input id="input-date" type="date" class="interactive mt-6 w-full border border-ink/20 rounded-xl px-4 py-3 font-sans" />
+    <div class="mt-6 grid grid-cols-3 gap-3">
+      ${DAY_PARTS.map(part => `
+        <button type="button" class="daypart-option interactive border-2 border-ink/15 rounded-xl py-3 font-sans text-sm" data-day-part="${part}">${part}</button>
+      `).join('')}
+    </div>
+    <p class="mt-4 font-sans text-xs text-ink/50">This is your preferred window — we'll follow up to confirm your exact time.</p>
+    <button id="schedule-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+  `;
+
+  function checkScheduleValid() {
+    document.getElementById('schedule-next').disabled = !(bookingState.date && bookingState.dayPart);
+  }
+
+  el.querySelectorAll('.daypart-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bookingState.dayPart = btn.dataset.dayPart;
+      el.querySelectorAll('.daypart-option').forEach(b => b.classList.remove('border-terracotta'));
+      btn.classList.add('border-terracotta');
+      checkScheduleValid();
+    });
+  });
+
+  document.getElementById('input-date').addEventListener('change', (e) => {
+    bookingState.date = e.target.value;
+    checkScheduleValid();
+  });
+
+  document.getElementById('schedule-next').addEventListener('click', () => {
+    submitProgress();
+    goToStep('intake');
+  });
+}
+
+function renderIntakeStep() {
+  const el = document.getElementById('booking-step-intake');
+  el.innerHTML = `
+    <h2 class="font-display text-2xl font-semibold text-ink">What are you hoping to get out of this?</h2>
+    <div class="mt-6 space-y-3">
+      ${INTAKE_OPTIONS.map(opt => `
+        <button type="button" class="intake-option interactive block w-full text-left border-2 border-ink/15 rounded-xl px-4 py-3 font-sans text-sm" data-intake-id="${opt.id}">${opt.label}</button>
+      `).join('')}
+    </div>
+    <button id="intake-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+  `;
+
+  el.querySelectorAll('.intake-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bookingState.intake = btn.dataset.intakeId;
+      el.querySelectorAll('.intake-option').forEach(b => b.classList.remove('border-terracotta'));
+      btn.classList.add('border-terracotta');
+      document.getElementById('intake-next').disabled = false;
+    });
+  });
+
+  document.getElementById('intake-next').addEventListener('click', () => {
+    submitProgress();
+    renderConfirmStep();
+    goToStep('confirm');
+  });
+}
+
+function renderConfirmStep() {
+  const el = document.getElementById('booking-step-confirm');
+  const pkg = PACKAGES[bookingState.packageId];
+  const total = calculateTotal(bookingState.packageId, bookingState.addonEnabled);
+  el.innerHTML = `
+    <h2 class="font-display text-2xl font-semibold text-ink">You're all set</h2>
+    <div class="mt-6 space-y-2 font-sans text-sm text-ink/70">
+      <p>${bookingState.firstName} ${bookingState.lastName} — ${bookingState.neighborhood}</p>
+      <p>${pkg.name}${bookingState.addonEnabled ? ` + ${ADDON.name}` : ''}</p>
+      <p>${bookingState.date} (${bookingState.dayPart})</p>
+    </div>
+    <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
+      <span>Total</span>
+      <span>$${total}</span>
+    </div>
+    <p class="mt-4 font-sans text-xs text-ink/50">We'll follow up to confirm your exact time.</p>
+    <button id="confirm-submit" class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Confirm</button>
+  `;
+
+  document.getElementById('confirm-submit').addEventListener('click', async () => {
+    await submitProgress();
+    el.innerHTML = `
+      <h2 class="font-display text-2xl font-semibold text-ink">Thank you, ${bookingState.firstName}.</h2>
+      <p class="mt-4 font-sans text-sm text-ink/70">We'll be in touch soon to lock in your session.</p>
+    `;
+  });
+}
+
 function openModal() {
   const overlay = document.getElementById('booking-modal-overlay');
   overlay.classList.remove('hidden');
@@ -153,6 +249,8 @@ function initBooking() {
   renderModalShell();
   renderContactStep();
   renderPackageStep();
+  renderScheduleStep();
+  renderIntakeStep();
   document.querySelectorAll('.js-open-booking').forEach(btn => btn.addEventListener('click', openModal));
   document.getElementById('close-booking-modal').addEventListener('click', closeModal);
 }
