@@ -131,6 +131,7 @@ function renderPackageStep() {
 
   document.getElementById('package-next').addEventListener('click', () => {
     submitProgress();
+    renderScheduleStep();
     goToStep('schedule');
   });
 }
