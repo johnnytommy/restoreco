@@ -36,11 +36,25 @@ Inspiration:
 
 ## Site Structure
 
-### Home (hero, top of page)
+### Home (top of page)
+The homepage's job is to route people into the other sections — it should
+stay simple, not become its own long scroll. Modeled on how Hinge's homepage
+uses a couple of short, text-forward blocks (big statement, minimal
+supporting copy) between sections rather than dense paragraphs:
+
 - Company tagline: **"We're here to clean up."** — used as the standing line
   under the logo/wordmark in the nav and/or directly under the hero headline.
-- Full-bleed hero photo placeholder with warm gradient overlay.
-- Headline + subhead + primary "Book Now" CTA (opens modal).
+- Hero: full-bleed hero photo placeholder with warm gradient overlay,
+  headline + subhead + primary "Book Now" CTA (opens modal).
+- One short text-forward section (Hinge-style energy — big line, little
+  supporting copy, not a full paragraph), then a way into About/Testimonials:
+
+  > You shouldn't feel bad about yourself for not getting matches. Your match
+  > rate is a function of your ability to curate the best parts of *you*.
+  > Let's find those and put them on display.
+
+- That's the extent of Home's own content — everything else lives on
+  About/Testimonials, which Home links into.
 
 ### About (anchor section)
 - **Big bold pull-quote at the top** (this is the one thing most visitors will
@@ -60,15 +74,6 @@ Inspiration:
   > it: not getting matches can hold that confidence back before it even gets
   > a chance to start. That's the hump we're here to help you get over, so
   > you can be released from what's been holding you down.
-
-- **Secondary callout**, sitting between the mission paragraph and the
-  founder bios — smaller than the pull-quote but still set apart visually
-  (its own highlighted block, not just body text), since this is the line
-  that bridges the mission into what the service actually does:
-
-  > You shouldn't feel bad about yourself for not getting matches. Your match
-  > rate is a function of your ability to curate the best parts of *you*.
-  > Let's find those and put them on display.
 
 - Founder bio cards, placeholder image + placeholder bio text for each,
   structured as an array of objects (add a third founder later by copying one
