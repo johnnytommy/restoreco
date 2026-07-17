@@ -61,6 +61,15 @@ Inspiration:
   > a chance to start. That's the hump we're here to help you get over, so
   > you can be released from what's been holding you down.
 
+- **Secondary callout**, sitting between the mission paragraph and the
+  founder bios — smaller than the pull-quote but still set apart visually
+  (its own highlighted block, not just body text), since this is the line
+  that bridges the mission into what the service actually does:
+
+  > You shouldn't feel bad about yourself for not getting matches. Your match
+  > rate is a function of your ability to curate the best parts of *you*.
+  > Let's find those and put them on display.
+
 - Founder bio cards, placeholder image + placeholder bio text for each,
   structured as an array of objects (add a third founder later by copying one
   block):
