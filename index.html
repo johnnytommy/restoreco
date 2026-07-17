@@ -2,9 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Restore Co.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restore Co. — We're here to clean up.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FBF6EF',
+            ink: '#241F1C',
+            terracotta: '#C1552C',
+            'terracotta-dark': '#9C4222',
+          },
+          fontFamily: {
+            display: ['Fraunces', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    body { background-color: #FBF6EF; }
+    .shadow-elevated {
+      box-shadow: 0 8px 24px -8px rgba(36, 31, 28, 0.35), 0 2px 6px -2px rgba(36, 31, 28, 0.25);
+    }
+    .shadow-floating {
+      box-shadow: 0 20px 48px -12px rgba(36, 31, 28, 0.4), 0 8px 16px -4px rgba(193, 85, 44, 0.25);
+    }
+    .interactive {
+      transition: transform 200ms var(--ease-spring), opacity 200ms var(--ease-spring), background-color 200ms var(--ease-spring);
+    }
+    .interactive:hover { transform: translateY(-2px); }
+    .interactive:active { transform: translateY(0px) scale(0.98); }
+    .interactive:focus-visible {
+      outline: 2px solid #C1552C;
+      outline-offset: 2px;
+    }
+  </style>
 </head>
-<body>
-  <h1>Restore Co. — coming soon</h1>
+<body class="font-sans text-ink">
+  <header class="fixed top-0 inset-x-0 z-50 bg-cream/90 backdrop-blur border-b border-ink/10">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#top" class="flex flex-col leading-none">
+        <span class="font-display text-xl font-semibold text-ink">Restore Co.</span>
+        <span class="font-sans text-xs text-ink/60 tracking-wide">We're here to clean up.</span>
+      </a>
+      <nav class="flex items-center gap-8">
+        <a href="#about" class="interactive font-sans text-sm text-ink/80 hover:text-ink">About</a>
+        <a href="#testimonials" class="interactive font-sans text-sm text-ink/80 hover:text-ink">Testimonials</a>
+        <button class="js-open-booking interactive font-sans text-sm font-semibold bg-terracotta text-cream px-5 py-2.5 rounded-full shadow-elevated hover:bg-terracotta-dark">
+          Book Now
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="pt-40 pb-24 px-6">
+      <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <h1 class="font-display text-5xl md:text-6xl font-semibold text-ink tracking-tight leading-[1.05]">
+            Your profile isn't the problem. It just needs a curator.
+          </h1>
+          <p class="mt-6 font-sans text-lg text-ink/70 leading-relaxed">
+            Restore Co. helps you put your best self on display — real photos, a stronger profile, and the confidence to match.
+          </p>
+          <button class="js-open-booking interactive mt-8 inline-block font-sans font-semibold bg-terracotta text-cream px-8 py-4 rounded-full shadow-floating hover:bg-terracotta-dark">
+            Book a Session
+          </button>
+        </div>
+        <div class="relative">
+          <img src="https://placehold.co/720x900/241F1C/FBF6EF?text=Hero+Photo" alt="" class="w-full rounded-3xl shadow-floating" />
+          <div class="absolute inset-0 rounded-3xl bg-gradient-to-t from-ink/60 via-transparent to-transparent mix-blend-multiply"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-24 px-6 bg-ink text-cream">
+      <div class="max-w-3xl mx-auto text-center">
+        <p class="font-display text-3xl md:text-4xl leading-snug tracking-tight">
+          You shouldn't feel bad about yourself for not getting matches. Your match rate is a function of your ability to curate the best parts of <em>you</em>. Let's find those and put them on display.
+        </p>
+      </div>
+    </section>
+
+    <section id="about" class="py-24 px-6"></section>
+
+    <section id="testimonials" class="py-24 px-6 bg-ink/[0.03]"></section>
+  </main>
+
+  <div id="booking-modal-root"></div>
+
+  <footer class="py-10 px-6 border-t border-ink/10">
+    <div class="max-w-6xl mx-auto text-sm text-ink/50 font-sans">© 2026 Restore Co.</div>
+  </footer>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
