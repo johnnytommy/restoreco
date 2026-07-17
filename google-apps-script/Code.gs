@@ -7,24 +7,31 @@ const COLUMNS = [
 
 function doPost(e) {
   const data = JSON.parse(e.postData.contents);
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  const sessionIdCol = COLUMNS.indexOf('sessionId');
 
-  let rowIndex = -1;
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][sessionIdCol] === data.sessionId) {
-      rowIndex = i + 1; // 1-indexed, matches getRange
-      break;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet();
+    const rows = sheet.getDataRange().getValues();
+    const sessionIdCol = COLUMNS.indexOf('sessionId');
+
+    let rowIndex = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][sessionIdCol] === data.sessionId) {
+        rowIndex = i + 1; // 1-indexed, matches getRange
+        break;
+      }
     }
-  }
 
-  const rowValues = COLUMNS.map(col => (data[col] !== undefined ? data[col] : ''));
+    const rowValues = COLUMNS.map(col => (data[col] !== undefined ? data[col] : ''));
 
-  if (rowIndex === -1) {
-    sheet.appendRow(rowValues);
-  } else {
-    sheet.getRange(rowIndex, 1, 1, COLUMNS.length).setValues([rowValues]);
+    if (rowIndex === -1) {
+      sheet.appendRow(rowValues);
+    } else {
+      sheet.getRange(rowIndex, 1, 1, COLUMNS.length).setValues([rowValues]);
+    }
+  } finally {
+    lock.releaseLock();
   }
 
   return ContentService
