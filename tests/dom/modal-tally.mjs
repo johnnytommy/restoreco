@@ -20,10 +20,13 @@ await page.waitForSelector('#booking-step-package:not(.hidden)');
 await page.click('[data-package-id="full"]');
 await page.click('#addon-toggle');
 
-const tally = await page.$eval('#price-tally', el => el.textContent);
-if (tally !== '$84') {
-  throw new Error(`Expected tally of $84 (Full Makeover $75 + add-on $9), got ${tally}`);
-}
+try {
+  const tally = await page.$eval('#price-tally', el => el.textContent);
+  if (tally !== '$84') {
+    throw new Error(`Expected tally of $84 (Full Makeover $75 + add-on $9), got ${tally}`);
+  }
 
-console.log('PASS: price tally reflects Full Makeover + Phone Consultation add-on');
-await browser.close();
+  console.log('PASS: price tally reflects Full Makeover + Phone Consultation add-on');
+} finally {
+  await browser.close();
+}

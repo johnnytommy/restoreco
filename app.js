@@ -1,7 +1,10 @@
 import { FOUNDERS, TESTIMONIALS } from './content.js';
 import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
 
-const SHEETS_WEBAPP_URL = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE'; // see google-apps-script/SETUP.md
+const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
+// window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
+// smoke tests simulate a configured deployment without editing this file.
+const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || SHEETS_WEBAPP_URL_PLACEHOLDER; // see google-apps-script/SETUP.md
 
 const bookingState = {
   sessionId: null,
@@ -34,6 +37,10 @@ function goToStep(name) {
 }
 
 async function submitProgress() {
+  if (SHEETS_WEBAPP_URL === SHEETS_WEBAPP_URL_PLACEHOLDER) {
+    console.warn('Restore Co: SHEETS_WEBAPP_URL is still the placeholder — booking was not sent. See google-apps-script/SETUP.md.');
+    return false;
+  }
   const payload = buildSheetPayload(bookingState);
   try {
     await fetch(SHEETS_WEBAPP_URL, {
@@ -42,8 +49,10 @@ async function submitProgress() {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload),
     });
+    return true;
   } catch (err) {
     console.error('Restore Co: failed to save booking progress', err);
+    return false;
   }
 }
 
@@ -93,13 +102,13 @@ function renderPackageStep() {
     <h2 class="font-display text-2xl font-semibold text-ink">Choose your package</h2>
     <div class="mt-6 space-y-4">
       ${Object.values(PACKAGES).map(pkg => `
-        <label class="interactive block border-2 border-ink/15 rounded-2xl p-4 cursor-pointer package-option" data-package-id="${pkg.id}">
+        <button type="button" class="interactive block w-full text-left border-2 border-ink/15 rounded-2xl p-4 cursor-pointer package-option" data-package-id="${pkg.id}">
           <div class="flex items-center justify-between">
             <span class="font-sans font-semibold text-ink">${pkg.name}</span>
             <span class="font-sans font-semibold text-terracotta">$${pkg.price}</span>
           </div>
           <p class="mt-1 font-sans text-sm text-ink/60">${pkg.description} — ${pkg.sessionLength}</p>
-        </label>
+        </button>
       `).join('')}
     </div>
     <label class="interactive mt-4 flex items-center gap-2 border border-ink/15 rounded-2xl p-4 cursor-pointer">
@@ -114,11 +123,11 @@ function renderPackageStep() {
     <button id="package-next" disabled class="interactive mt-6 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
   `;
 
-  el.querySelectorAll('.package-option').forEach(label => {
-    label.addEventListener('click', () => {
-      bookingState.packageId = label.dataset.packageId;
-      el.querySelectorAll('.package-option').forEach(l => l.classList.remove('border-terracotta'));
-      label.classList.add('border-terracotta');
+  el.querySelectorAll('.package-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bookingState.packageId = btn.dataset.packageId;
+      el.querySelectorAll('.package-option').forEach(b => b.classList.remove('border-terracotta'));
+      btn.classList.add('border-terracotta');
       updatePriceTally();
       document.getElementById('package-next').disabled = false;
     });
@@ -224,11 +233,21 @@ function renderConfirmStep() {
   `;
 
   document.getElementById('confirm-submit').addEventListener('click', async () => {
-    await submitProgress();
-    el.innerHTML = `
-      <h2 class="font-display text-2xl font-semibold text-ink">Thank you, ${bookingState.firstName}.</h2>
-      <p class="mt-4 font-sans text-sm text-ink/70">We'll be in touch soon to lock in your session.</p>
-    `;
+    const success = await submitProgress();
+    if (success) {
+      // A completed booking should never share its sessionId with a future one — otherwise
+      // the Apps Script backend's upsert-by-sessionId would overwrite this row on the next visit.
+      localStorage.removeItem('restoreco_session_id');
+      el.innerHTML = `
+        <h2 class="font-display text-2xl font-semibold text-ink">Thank you, ${bookingState.firstName}.</h2>
+        <p class="mt-4 font-sans text-sm text-ink/70">We'll be in touch soon to lock in your session.</p>
+      `;
+    } else {
+      el.innerHTML = `
+        <h2 class="font-display text-2xl font-semibold text-ink">Something went wrong</h2>
+        <p class="mt-4 font-sans text-sm text-ink/70">We couldn't save your booking — please try again or reach out to us directly.</p>
+      `;
+    }
   });
 }
 

@@ -5,8 +5,30 @@ const COLUMNS = [
   'date', 'dayPart', 'intake', 'submittedAt',
 ];
 
+// Free-text fields the user can type directly; these must be escaped before being written to the
+// Sheet so a value like "=IMPORTXML(...)" isn't interpreted as a formula (formula injection).
+const FREE_TEXT_COLUMNS = ['firstName', 'lastName', 'neighborhood'];
+
+function escapeFormulaInjection(value) {
+  if (typeof value === 'string' && value.length > 0 && /^[=+\-@]/.test(value)) {
+    return "'" + value;
+  }
+  return value;
+}
+
+function doGet() {
+  return ContentService.createTextOutput('Restore Co. booking backend is running.');
+}
+
 function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
+  let data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: 'invalid JSON' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -23,7 +45,10 @@ function doPost(e) {
       }
     }
 
-    const rowValues = COLUMNS.map(col => (data[col] !== undefined ? data[col] : ''));
+    const rowValues = COLUMNS.map(col => {
+      const value = data[col] !== undefined ? data[col] : '';
+      return FREE_TEXT_COLUMNS.indexOf(col) !== -1 ? escapeFormulaInjection(value) : value;
+    });
 
     if (rowIndex === -1) {
       sheet.appendRow(rowValues);
