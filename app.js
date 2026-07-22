@@ -1,11 +1,18 @@
 import { FOUNDERS, TESTIMONIALS } from './content.js';
 import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
 
-const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
-const SHEETS_WEBAPP_URL_CONFIGURED = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
+// Production writes to the real Restore Co. Bookings sheet. Every other host (localhost,
+// Vercel preview deployments, anything else) writes to a separate dev sheet instead, so
+// local/preview testing never touches production lead data. See google-apps-script/SETUP.md.
+const PROD_HOSTNAME = 'restoreco.vercel.app';
+const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_DEV_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
+const SHEETS_WEBAPP_URL_PROD = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
+const SHEETS_WEBAPP_URL_DEV = SHEETS_WEBAPP_URL_PLACEHOLDER;
+
+const isProdHost = typeof window !== 'undefined' && window.location.hostname === PROD_HOSTNAME;
 // window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
 // smoke tests simulate a configured deployment without editing this file.
-const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || SHEETS_WEBAPP_URL_CONFIGURED; // see google-apps-script/SETUP.md
+const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || (isProdHost ? SHEETS_WEBAPP_URL_PROD : SHEETS_WEBAPP_URL_DEV);
 
 const bookingState = {
   sessionId: null,
