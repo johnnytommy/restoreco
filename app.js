@@ -7,7 +7,7 @@ import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinu
 const PROD_HOSTNAME = 'restoreco.vercel.app';
 const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_DEV_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
 const SHEETS_WEBAPP_URL_PROD = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
-const SHEETS_WEBAPP_URL_DEV = SHEETS_WEBAPP_URL_PLACEHOLDER;
+const SHEETS_WEBAPP_URL_DEV = 'https://script.google.com/macros/s/AKfycbzNHcMmU0iv3gmuQTPv-6f9lD5uuKiVwxqGnkiTc3Wk1MSx-gZHKnBIEWL5hGsqi601CQ/exec';
 
 const isProdHost = typeof window !== 'undefined' && window.location.hostname === PROD_HOSTNAME;
 // window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
