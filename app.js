@@ -2,9 +2,10 @@ import { FOUNDERS, TESTIMONIALS } from './content.js';
 import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
 
 const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
+const SHEETS_WEBAPP_URL_CONFIGURED = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
 // window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
 // smoke tests simulate a configured deployment without editing this file.
-const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || SHEETS_WEBAPP_URL_PLACEHOLDER; // see google-apps-script/SETUP.md
+const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || SHEETS_WEBAPP_URL_CONFIGURED; // see google-apps-script/SETUP.md
 
 const bookingState = {
   sessionId: null,
