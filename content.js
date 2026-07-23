@@ -9,7 +9,7 @@ export const FOUNDERS = [
     id: 'johnny-thomas',
     name: 'Johnny Thomas',
     photo: 'https://placehold.co/480x480/FBF6EF/241F1C?text=Johnny+Thomas',
-    bio: 'Bio coming soon.',
+    bio: "Johnny works as a data science strategist in the live events and experiences domain; his work focuses on algorithmic development to enhance events like the Olympics, SuperBowl, UFC and more. He understands the fundamentals of how dating app algorithms work and is passionate about helping young men and women battle the self-loathing that can come from bad app performance.",
   },
 ];
 
