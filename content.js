@@ -1,8 +1,8 @@
 export const FOUNDERS = [
   {
-    id: 'deja-powell',
-    name: 'Deja Powell',
-    photo: 'https://placehold.co/480x480/FBF6EF/241F1C?text=Deja+Powell',
+    id: 'dejah-powell',
+    name: 'Dejah Powell',
+    photo: 'https://placehold.co/480x480/FBF6EF/241F1C?text=Dejah+Powell',
     bio: 'Bio coming soon.',
   },
   {
@@ -16,17 +16,20 @@ export const FOUNDERS = [
 export const TESTIMONIALS = [
   {
     id: 'testimonial-1',
-    before: 'https://placehold.co/480x600/241F1C/FBF6EF?text=Before',
-    after: 'https://placehold.co/480x600/C1552C/FBF6EF?text=After',
+    before: 'https://placehold.co/390x844/241F1C/FBF6EF?text=Before',
+    after: 'https://placehold.co/390x844/C1552C/FBF6EF?text=After',
+    quote: 'Quote coming soon.',
   },
   {
     id: 'testimonial-2',
-    before: 'https://placehold.co/480x600/241F1C/FBF6EF?text=Before',
-    after: 'https://placehold.co/480x600/C1552C/FBF6EF?text=After',
+    before: 'https://placehold.co/390x844/241F1C/FBF6EF?text=Before',
+    after: 'https://placehold.co/390x844/C1552C/FBF6EF?text=After',
+    quote: 'Quote coming soon.',
   },
   {
     id: 'testimonial-3',
-    before: 'https://placehold.co/480x600/241F1C/FBF6EF?text=Before',
-    after: 'https://placehold.co/480x600/C1552C/FBF6EF?text=After',
+    before: 'https://placehold.co/390x844/241F1C/FBF6EF?text=Before',
+    after: 'https://placehold.co/390x844/C1552C/FBF6EF?text=After',
+    quote: 'Quote coming soon.',
   },
 ];

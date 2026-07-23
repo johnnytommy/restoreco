@@ -10,8 +10,8 @@ if (cardCount !== 2) {
 }
 
 const names = await page.$$eval('#founders-grid h3', els => els.map(el => el.textContent));
-if (!names.includes('Deja Powell') || !names.includes('Johnny Thomas')) {
-  throw new Error(`Expected Deja Powell and Johnny Thomas, found: ${names.join(', ')}`);
+if (!names.includes('Dejah Powell') || !names.includes('Johnny Thomas')) {
+  throw new Error(`Expected Dejah Powell and Johnny Thomas, found: ${names.join(', ')}`);
 }
 
 console.log('PASS: About section renders both founder cards');

@@ -297,16 +297,15 @@ function renderFounders() {
 function renderTestimonials() {
   const grid = document.getElementById('testimonials-grid');
   grid.innerHTML = TESTIMONIALS.map(t => `
-    <div class="bg-cream rounded-3xl shadow-elevated overflow-hidden">
-      <div class="grid grid-cols-2">
-        <div class="relative">
-          <img src="${t.before}" alt="Before" class="w-full h-full object-cover" />
-          <span class="absolute bottom-2 left-2 text-xs font-sans font-semibold bg-ink/80 text-cream px-2 py-1 rounded-full">Before</span>
-        </div>
-        <div class="relative">
-          <img src="${t.after}" alt="After" class="w-full h-full object-cover" />
-          <span class="absolute bottom-2 left-2 text-xs font-sans font-semibold bg-terracotta text-cream px-2 py-1 rounded-full">After</span>
-        </div>
+    <div class="bg-cream rounded-3xl shadow-elevated overflow-hidden grid md:grid-cols-[1fr_1.4fr_1fr] items-center">
+      <div class="relative">
+        <img src="${t.before}" alt="Before" class="w-full aspect-[390/844] object-cover" />
+        <span class="absolute bottom-3 left-3 text-xs font-sans font-semibold bg-ink/80 text-cream px-2 py-1 rounded-full">Before</span>
+      </div>
+      <p class="font-display text-xl md:text-2xl text-ink text-center leading-snug px-8 py-8 md:py-0">${t.quote}</p>
+      <div class="relative">
+        <img src="${t.after}" alt="After" class="w-full aspect-[390/844] object-cover" />
+        <span class="absolute bottom-3 left-3 text-xs font-sans font-semibold bg-terracotta text-cream px-2 py-1 rounded-full">After</span>
       </div>
     </div>
   `).join('');
