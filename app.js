@@ -289,7 +289,9 @@ function renderFounders() {
     <div class="bg-cream rounded-3xl shadow-elevated p-6 text-center">
       <img src="${founder.photo}" alt="${founder.name}" class="w-full aspect-square object-cover rounded-2xl shadow-elevated" />
       <h3 class="mt-4 font-display text-xl font-semibold text-ink">${founder.name}</h3>
-      <p class="mt-2 font-sans text-sm text-ink/60">${founder.bio}</p>
+      <div class="mt-2 font-sans text-sm text-ink/60 space-y-2">
+        ${founder.bio.split('\n\n').map(paragraph => `<p>${paragraph}</p>`).join('')}
+      </div>
     </div>
   `).join('');
 }
