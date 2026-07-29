@@ -1,4 +1,4 @@
-import { FOUNDERS, TESTIMONIALS } from './content.js';
+import { HERO_IMAGES, FOUNDERS, TESTIMONIALS } from './content.js';
 import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
 
 // Production writes to the real Restore Co. Bookings sheet. Every other host (localhost,
@@ -283,6 +283,50 @@ function initBooking() {
   document.getElementById('close-booking-modal').addEventListener('click', closeModal);
 }
 
+function renderHeroCarousel() {
+  const container = document.getElementById('hero-carousel');
+  if (!container || HERO_IMAGES.length === 0) return;
+
+  container.innerHTML = HERO_IMAGES.map(src => `<img src="${src}" alt="" class="hero-card" />`).join('');
+  const cards = Array.from(container.querySelectorAll('.hero-card'));
+  const total = cards.length;
+  let current = 0;
+
+  // Cards sit in a small ring around `current`: front (visible), one peeking in from the
+  // right, one peeking out to the left, and the rest parked invisibly behind the front card
+  // until their turn comes back around.
+  function positionCards() {
+    cards.forEach((card, i) => {
+      const offset = (i - current + total) % total;
+      if (offset === 0) {
+        card.style.transform = 'translateX(0%) scale(1) rotate(0deg)';
+        card.style.opacity = '1';
+        card.style.zIndex = '40';
+      } else if (offset === 1) {
+        card.style.transform = 'translateX(55%) scale(0.85) rotate(6deg)';
+        card.style.opacity = '0.45';
+        card.style.zIndex = '30';
+      } else if (offset === total - 1) {
+        card.style.transform = 'translateX(-55%) scale(0.85) rotate(-6deg)';
+        card.style.opacity = '0.45';
+        card.style.zIndex = '30';
+      } else {
+        card.style.transform = 'translateX(0%) scale(0.7) rotate(0deg)';
+        card.style.opacity = '0';
+        card.style.zIndex = '10';
+      }
+    });
+  }
+
+  positionCards();
+  if (total > 1) {
+    setInterval(() => {
+      current = (current + 1) % total;
+      positionCards();
+    }, 3000);
+  }
+}
+
 function renderFounders() {
   const grid = document.getElementById('founders-grid');
   grid.innerHTML = FOUNDERS.map(founder => `
@@ -314,6 +358,7 @@ function renderTestimonials() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  renderHeroCarousel();
   renderFounders();
   renderTestimonials();
   initBooking();

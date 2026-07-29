@@ -1,3 +1,10 @@
+export const HERO_IMAGES = [
+  'brand_assets/hero1.jpg',
+  'brand_assets/hero2.jpg',
+  'brand_assets/hero3.jpg',
+  'brand_assets/hero4.jpg',
+];
+
 export const FOUNDERS = [
   {
     id: 'dejah-powell',
