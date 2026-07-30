@@ -13,20 +13,27 @@ await page.click('.js-open-booking');
 await page.waitForSelector('#booking-step-contact:not(.hidden)');
 await page.type('#input-firstName', 'Jamie');
 await page.type('#input-lastName', 'Rivera');
-await page.type('#input-neighborhood', 'Fishtown');
+await page.type('#input-email', 'jamie@example.com');
+await page.type('#input-zip', '10001');
 await page.click('#contact-next');
 
 await page.waitForSelector('#booking-step-package:not(.hidden)');
 await page.click('[data-package-id="full"]');
-await page.click('#addon-toggle');
+await page.click('#curation-addon-toggle');
 
 try {
   const tally = await page.$eval('#price-tally', el => el.textContent);
-  if (tally !== '$84') {
-    throw new Error(`Expected tally of $84 (Full Makeover $75 + add-on $9), got ${tally}`);
+  if (tally !== '$125') {
+    throw new Error(`Expected tally of $125 (Full Makeover $75 + curation add-on $50), got ${tally}`);
   }
 
-  console.log('PASS: price tally reflects Full Makeover + Phone Consultation add-on');
+  await page.click('#consult-only-toggle');
+  const consultOnlyTally = await page.$eval('#price-tally', el => el.textContent);
+  if (consultOnlyTally !== '$50') {
+    throw new Error(`Expected consult-only tally of $50, got ${consultOnlyTally}`);
+  }
+
+  console.log('PASS: price tally reflects Full Makeover + curation add-on, and consult-only flat price');
 } finally {
   await browser.close();
 }

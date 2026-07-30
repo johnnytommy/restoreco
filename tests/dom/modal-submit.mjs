@@ -23,7 +23,8 @@ try {
   await page.waitForSelector('#booking-step-contact:not(.hidden)');
   await page.type('#input-firstName', 'Jamie');
   await page.type('#input-lastName', 'Rivera');
-  await page.type('#input-neighborhood', 'Fishtown');
+  await page.type('#input-email', 'jamie@example.com');
+  await page.type('#input-zip', '10001');
   await page.click('#contact-next');
 
   await page.waitForSelector('#booking-step-package:not(.hidden)');

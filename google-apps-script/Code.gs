@@ -1,13 +1,13 @@
 const SHEET_NAME = 'Bookings';
 const COLUMNS = [
-  'sessionId', 'firstName', 'lastName', 'neighborhood',
-  'packageId', 'packageName', 'addonEnabled', 'total',
+  'sessionId', 'firstName', 'lastName', 'email', 'zip',
+  'packageId', 'packageName', 'curationAddon', 'consultOnly', 'total',
   'date', 'dayPart', 'intake', 'submittedAt',
 ];
 
 // Free-text fields the user can type directly; these must be escaped before being written to the
 // Sheet so a value like "=IMPORTXML(...)" isn't interpreted as a formula (formula injection).
-const FREE_TEXT_COLUMNS = ['firstName', 'lastName', 'neighborhood'];
+const FREE_TEXT_COLUMNS = ['firstName', 'lastName', 'email', 'zip'];
 
 function escapeFormulaInjection(value) {
   if (typeof value === 'string' && value.length > 0 && /^[=+\-@]/.test(value)) {

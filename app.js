@@ -1,5 +1,5 @@
 import { HERO_IMAGES, FOUNDERS, TESTIMONIALS } from './content.js';
-import { PACKAGES, ADDON, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload } from './booking.js';
+import { PACKAGES, CURATION_ADDON, CONSULT_ONLY, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload, isValidEmail, isValidNycZip } from './booking.js';
 
 // Production writes to the real Restore Co. Bookings sheet. Every other host (localhost,
 // Vercel preview deployments, anything else) writes to a separate dev sheet instead, so
@@ -18,9 +18,11 @@ const bookingState = {
   sessionId: null,
   firstName: '',
   lastName: '',
-  neighborhood: '',
+  email: '',
+  zip: '',
   packageId: '',
-  addonEnabled: false,
+  curationAddon: false,
+  consultOnly: false,
   date: '',
   dayPart: '',
   intake: '',
@@ -83,24 +85,39 @@ function renderContactStep() {
   document.getElementById('booking-step-contact').innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">Let's start with you</h2>
     <div class="mt-6 space-y-4">
-      <input id="input-firstName" type="text" placeholder="First name" class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
-      <input id="input-lastName" type="text" placeholder="Last name" class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
-      <input id="input-neighborhood" type="text" placeholder="Neighborhood" class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      <input id="input-firstName" type="text" placeholder="First name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      <input id="input-lastName" type="text" placeholder="Last name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      <input id="input-email" type="email" placeholder="Email" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      <input id="input-zip" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="NYC ZIP code" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
     </div>
-    <button id="contact-next" class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Next</button>
+    <button id="contact-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
   `;
+
+  function checkContactValid() {
+    const firstName = document.getElementById('input-firstName').value.trim();
+    const lastName = document.getElementById('input-lastName').value.trim();
+    const email = document.getElementById('input-email').value.trim();
+    const zip = document.getElementById('input-zip').value.trim();
+    document.getElementById('contact-next').disabled = !(firstName && lastName && isValidEmail(email) && isValidNycZip(zip));
+  }
+
+  ['input-firstName', 'input-lastName', 'input-email', 'input-zip'].forEach(id => {
+    document.getElementById(id).addEventListener('input', checkContactValid);
+  });
+
   document.getElementById('contact-next').addEventListener('click', () => {
     bookingState.firstName = document.getElementById('input-firstName').value.trim();
     bookingState.lastName = document.getElementById('input-lastName').value.trim();
-    bookingState.neighborhood = document.getElementById('input-neighborhood').value.trim();
+    bookingState.email = document.getElementById('input-email').value.trim();
+    bookingState.zip = document.getElementById('input-zip').value.trim();
     submitProgress();
     goToStep('package');
   });
 }
 
 function updatePriceTally() {
-  if (!bookingState.packageId) return;
-  const total = calculateTotal(bookingState.packageId, bookingState.addonEnabled);
+  if (!bookingState.packageId && !bookingState.consultOnly) return;
+  const total = calculateTotal(bookingState.packageId, bookingState.curationAddon, bookingState.consultOnly);
   document.getElementById('price-tally').textContent = `$${total}`;
 }
 
@@ -108,7 +125,9 @@ function renderPackageStep() {
   const el = document.getElementById('booking-step-package');
   el.innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">Choose your package</h2>
-    <div class="mt-6 space-y-4">
+    <div id="shoot-notes-top" class="mt-1 font-sans text-sm text-ink/60">Every shoot includes a pre-session consultation on outfits and location.</div>
+
+    <div id="package-options" class="mt-6 space-y-4">
       ${Object.values(PACKAGES).map(pkg => `
         <button type="button" class="interactive block w-full text-left border-2 border-ink/15 rounded-2xl p-4 cursor-pointer package-option" data-package-id="${pkg.id}">
           <div class="flex items-center justify-between">
@@ -119,17 +138,37 @@ function renderPackageStep() {
         </button>
       `).join('')}
     </div>
-    <label class="interactive mt-4 flex items-center gap-2 border border-ink/15 rounded-2xl p-4 cursor-pointer">
-      <input type="checkbox" id="addon-toggle" />
-      <span class="font-sans text-sm text-ink">${ADDON.name} (+$${ADDON.price}) — ${ADDON.description}</span>
+
+    <label id="curation-addon-label" class="interactive mt-4 flex items-center gap-2 border border-ink/15 rounded-2xl p-4 cursor-pointer">
+      <input type="checkbox" id="curation-addon-toggle" />
+      <span class="font-sans text-sm text-ink">${CURATION_ADDON.name} (+$${CURATION_ADDON.price}) — ${CURATION_ADDON.description}</span>
     </label>
-    <p class="mt-4 font-sans text-xs text-ink/50">All shoots are done on film. We recommend most of your actual app-slot photos still come from your phone.</p>
+
+    <p id="shoot-notes-bottom" class="mt-4 font-sans text-xs text-ink/50">Every shoot mixes film and phone camera — we recommend your app photos lean about 75% phone, 25% film, depending on your vibe.</p>
+
+    <div class="mt-6 border-t border-ink/10 pt-6">
+      <label class="interactive flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" id="consult-only-toggle" class="mt-1" />
+        <span>
+          <span class="block font-sans text-sm font-semibold text-ink">I don't want new pictures — just the app consultation (+$${CONSULT_ONLY.price})</span>
+          <span class="block font-sans text-xs text-ink/60 mt-1">${CONSULT_ONLY.description}</span>
+        </span>
+      </label>
+    </div>
+
     <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
       <span>Total</span>
       <span id="price-tally">$0</span>
     </div>
-    <button id="package-next" disabled class="interactive mt-6 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    <div class="mt-6 grid grid-cols-2 gap-3">
+      <button id="package-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
+      <button id="package-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    </div>
   `;
+
+  function checkPackageValid() {
+    document.getElementById('package-next').disabled = !(bookingState.consultOnly || bookingState.packageId);
+  }
 
   el.querySelectorAll('.package-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -137,14 +176,37 @@ function renderPackageStep() {
       el.querySelectorAll('.package-option').forEach(b => b.classList.remove('border-terracotta'));
       btn.classList.add('border-terracotta');
       updatePriceTally();
-      document.getElementById('package-next').disabled = false;
+      checkPackageValid();
     });
   });
 
-  document.getElementById('addon-toggle').addEventListener('change', (e) => {
-    bookingState.addonEnabled = e.target.checked;
+  document.getElementById('curation-addon-toggle').addEventListener('change', (e) => {
+    bookingState.curationAddon = e.target.checked;
     updatePriceTally();
   });
+
+  document.getElementById('consult-only-toggle').addEventListener('change', (e) => {
+    bookingState.consultOnly = e.target.checked;
+
+    document.getElementById('package-options').classList.toggle('opacity-40', bookingState.consultOnly);
+    document.getElementById('package-options').classList.toggle('pointer-events-none', bookingState.consultOnly);
+    document.getElementById('curation-addon-label').classList.toggle('opacity-40', bookingState.consultOnly);
+    document.getElementById('curation-addon-label').classList.toggle('pointer-events-none', bookingState.consultOnly);
+    document.getElementById('shoot-notes-top').classList.toggle('hidden', bookingState.consultOnly);
+    document.getElementById('shoot-notes-bottom').classList.toggle('hidden', bookingState.consultOnly);
+
+    if (bookingState.consultOnly) {
+      bookingState.packageId = '';
+      bookingState.curationAddon = false;
+      document.getElementById('curation-addon-toggle').checked = false;
+      el.querySelectorAll('.package-option').forEach(b => b.classList.remove('border-terracotta'));
+    }
+
+    updatePriceTally();
+    checkPackageValid();
+  });
+
+  document.getElementById('package-back').addEventListener('click', () => goToStep('contact'));
 
   document.getElementById('package-next').addEventListener('click', () => {
     submitProgress();
@@ -156,22 +218,29 @@ function renderPackageStep() {
 function renderScheduleStep() {
   const el = document.getElementById('booking-step-schedule');
   const pkg = PACKAGES[bookingState.packageId];
+  const durationText = bookingState.consultOnly
+    ? `Your app consultation runs about ${CONSULT_ONLY.slotMinutes} minutes.`
+    : (pkg ? `Your ${pkg.name} session runs about ${getSlotMinutes(bookingState.packageId)} minutes.` : '');
   el.innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">Pick a date</h2>
-    <p class="mt-1 font-sans text-sm text-ink/60">${pkg ? `Your ${pkg.name} session runs about ${getSlotMinutes(bookingState.packageId)} minutes.` : ''}</p>
-    <input id="input-date" type="date" class="interactive mt-6 w-full border border-ink/20 rounded-xl px-4 py-3 font-sans" />
+    <p class="mt-1 font-sans text-sm text-ink/60">${durationText}</p>
+    <input id="input-date" type="date" value="${bookingState.date || ''}" class="interactive mt-6 w-full border border-ink/20 rounded-xl px-4 py-3 font-sans" />
     <div class="mt-6 grid grid-cols-3 gap-3">
       ${DAY_PARTS.map(part => `
-        <button type="button" class="daypart-option interactive border-2 border-ink/15 rounded-xl py-3 font-sans text-sm" data-day-part="${part}">${part}</button>
+        <button type="button" class="daypart-option interactive border-2 ${bookingState.dayPart === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-day-part="${part}">${part}</button>
       `).join('')}
     </div>
     <p class="mt-4 font-sans text-xs text-ink/50">This is your preferred window — we'll follow up to confirm your exact time.</p>
-    <button id="schedule-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    <div class="mt-8 grid grid-cols-2 gap-3">
+      <button id="schedule-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
+      <button id="schedule-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    </div>
   `;
 
   function checkScheduleValid() {
     document.getElementById('schedule-next').disabled = !(bookingState.date && bookingState.dayPart);
   }
+  checkScheduleValid();
 
   el.querySelectorAll('.daypart-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -186,6 +255,8 @@ function renderScheduleStep() {
     bookingState.date = e.target.value;
     checkScheduleValid();
   });
+
+  document.getElementById('schedule-back').addEventListener('click', () => goToStep('package'));
 
   document.getElementById('schedule-next').addEventListener('click', () => {
     submitProgress();
@@ -202,7 +273,10 @@ function renderIntakeStep() {
         <button type="button" class="intake-option interactive block w-full text-left border-2 border-ink/15 rounded-xl px-4 py-3 font-sans text-sm" data-intake-id="${opt.id}">${opt.label}</button>
       `).join('')}
     </div>
-    <button id="intake-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    <div class="mt-8 grid grid-cols-2 gap-3">
+      <button id="intake-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
+      <button id="intake-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    </div>
   `;
 
   el.querySelectorAll('.intake-option').forEach(btn => {
@@ -214,6 +288,8 @@ function renderIntakeStep() {
     });
   });
 
+  document.getElementById('intake-back').addEventListener('click', () => goToStep('schedule'));
+
   document.getElementById('intake-next').addEventListener('click', () => {
     submitProgress();
     renderConfirmStep();
@@ -224,12 +300,15 @@ function renderIntakeStep() {
 function renderConfirmStep() {
   const el = document.getElementById('booking-step-confirm');
   const pkg = PACKAGES[bookingState.packageId];
-  const total = calculateTotal(bookingState.packageId, bookingState.addonEnabled);
+  const total = calculateTotal(bookingState.packageId, bookingState.curationAddon, bookingState.consultOnly);
+  const offeringLabel = bookingState.consultOnly
+    ? CONSULT_ONLY.name
+    : `${pkg.name}${bookingState.curationAddon ? ` + ${CURATION_ADDON.name}` : ''}`;
   el.innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">You're all set</h2>
     <div class="mt-6 space-y-2 font-sans text-sm text-ink/70">
-      <p>${bookingState.firstName} ${bookingState.lastName} — ${bookingState.neighborhood}</p>
-      <p>${pkg.name}${bookingState.addonEnabled ? ` + ${ADDON.name}` : ''}</p>
+      <p>${bookingState.firstName} ${bookingState.lastName} — ${bookingState.email} — ${bookingState.zip}</p>
+      <p>${offeringLabel}</p>
       <p>${bookingState.date} (${bookingState.dayPart})</p>
     </div>
     <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
@@ -237,8 +316,13 @@ function renderConfirmStep() {
       <span>$${total}</span>
     </div>
     <p class="mt-4 font-sans text-xs text-ink/50">We'll follow up to confirm your exact time.</p>
-    <button id="confirm-submit" class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Confirm</button>
+    <div class="mt-8 grid grid-cols-2 gap-3">
+      <button id="confirm-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
+      <button id="confirm-submit" class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Confirm</button>
+    </div>
   `;
+
+  document.getElementById('confirm-back').addEventListener('click', () => goToStep('intake'));
 
   document.getElementById('confirm-submit').addEventListener('click', async () => {
     const success = await submitProgress();
