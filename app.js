@@ -23,12 +23,12 @@ const bookingState = {
   packageId: '',
   curationAddon: false,
   consultOnly: false,
-  date: '',
-  dayPart: '',
-  intake: '',
+  weekdayAvailability: '',
+  weekendAvailability: '',
+  intake: [],
 };
 
-const STEP_IDS = ['contact', 'package', 'schedule', 'intake', 'confirm'];
+const STEP_IDS = ['contact', 'package', 'availability', 'intake', 'confirm'];
 
 function getOrCreateSessionId() {
   let id = localStorage.getItem('restoreco_session_id');
@@ -48,7 +48,7 @@ function goToStep(name) {
 
 async function submitProgress() {
   if (SHEETS_WEBAPP_URL === SHEETS_WEBAPP_URL_PLACEHOLDER) {
-    console.warn('Restore Co: SHEETS_WEBAPP_URL is still the placeholder — booking was not sent. See google-apps-script/SETUP.md.');
+    console.warn('Restore Co: SHEETS_WEBAPP_URL is still the placeholder, booking was not sent. See google-apps-script/SETUP.md.');
     return false;
   }
   const payload = buildSheetPayload(bookingState);
@@ -73,7 +73,7 @@ function renderModalShell() {
         <button id="close-booking-modal" class="interactive absolute top-4 right-4 text-ink/50 hover:text-ink" aria-label="Close">✕</button>
         <div id="booking-step-contact" class="booking-step"></div>
         <div id="booking-step-package" class="booking-step hidden"></div>
-        <div id="booking-step-schedule" class="booking-step hidden"></div>
+        <div id="booking-step-availability" class="booking-step hidden"></div>
         <div id="booking-step-intake" class="booking-step hidden"></div>
         <div id="booking-step-confirm" class="booking-step hidden"></div>
       </div>
@@ -85,27 +85,63 @@ function renderContactStep() {
   document.getElementById('booking-step-contact').innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">Let's start with you</h2>
     <div class="mt-6 space-y-4">
-      <input id="input-firstName" type="text" placeholder="First name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
-      <input id="input-lastName" type="text" placeholder="Last name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
-      <input id="input-email" type="email" placeholder="Email" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
-      <input id="input-zip" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="NYC ZIP code" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      <div>
+        <input id="input-firstName" type="text" placeholder="First name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      </div>
+      <div>
+        <input id="input-lastName" type="text" placeholder="Last name" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+      </div>
+      <div>
+        <input id="input-email" type="email" placeholder="Email" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+        <p id="error-email" class="hidden mt-1 font-sans text-xs text-red-600">Please enter a valid email address.</p>
+      </div>
+      <div>
+        <input id="input-zip" type="text" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="NYC ZIP code" required class="interactive w-full border border-ink/20 rounded-xl px-4 py-3 font-sans focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta" />
+        <p id="error-zip" class="hidden mt-1 font-sans text-xs text-red-600">Please enter a valid 5-digit NYC ZIP code.</p>
+      </div>
     </div>
-    <button id="contact-next" disabled class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+    <button id="contact-next" class="interactive mt-8 w-full bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Next</button>
   `;
 
-  function checkContactValid() {
+  let contactAttempted = false;
+
+  function setFieldError(inputId, hasError) {
+    const el = document.getElementById(inputId);
+    el.classList.toggle('border-red-500', hasError);
+  }
+
+  function validateContactStep(showErrors) {
     const firstName = document.getElementById('input-firstName').value.trim();
     const lastName = document.getElementById('input-lastName').value.trim();
     const email = document.getElementById('input-email').value.trim();
     const zip = document.getElementById('input-zip').value.trim();
-    document.getElementById('contact-next').disabled = !(firstName && lastName && isValidEmail(email) && isValidNycZip(zip));
+
+    const firstNameValid = Boolean(firstName);
+    const lastNameValid = Boolean(lastName);
+    const emailValid = isValidEmail(email);
+    const zipValid = isValidNycZip(zip);
+
+    if (showErrors) {
+      setFieldError('input-firstName', !firstNameValid);
+      setFieldError('input-lastName', !lastNameValid);
+      setFieldError('input-email', !emailValid);
+      setFieldError('input-zip', !zipValid);
+      document.getElementById('error-email').classList.toggle('hidden', email.length === 0 || emailValid);
+      document.getElementById('error-zip').classList.toggle('hidden', zip.length === 0 || zipValid);
+    }
+
+    return firstNameValid && lastNameValid && emailValid && zipValid;
   }
 
   ['input-firstName', 'input-lastName', 'input-email', 'input-zip'].forEach(id => {
-    document.getElementById(id).addEventListener('input', checkContactValid);
+    document.getElementById(id).addEventListener('input', () => {
+      if (contactAttempted) validateContactStep(true);
+    });
   });
 
   document.getElementById('contact-next').addEventListener('click', () => {
+    contactAttempted = true;
+    if (!validateContactStep(true)) return;
     bookingState.firstName = document.getElementById('input-firstName').value.trim();
     bookingState.lastName = document.getElementById('input-lastName').value.trim();
     bookingState.email = document.getElementById('input-email').value.trim();
@@ -127,34 +163,38 @@ function renderPackageStep() {
     <h2 class="font-display text-2xl font-semibold text-ink">Choose your package</h2>
     <div id="shoot-notes-top" class="mt-1 font-sans text-sm text-ink/60">Every shoot includes a pre-session consultation on outfits and location.</div>
 
-    <div id="package-options" class="mt-6 space-y-4">
-      ${Object.values(PACKAGES).map(pkg => `
-        <button type="button" class="interactive block w-full text-left border-2 border-ink/15 rounded-2xl p-4 cursor-pointer package-option" data-package-id="${pkg.id}">
-          <div class="flex items-center justify-between">
-            <span class="font-sans font-semibold text-ink">${pkg.name}</span>
-            <span class="font-sans font-semibold text-terracotta">$${pkg.price}</span>
-          </div>
-          <p class="mt-1 font-sans text-sm text-ink/60">${pkg.description} — ${pkg.sessionLength}</p>
-        </button>
-      `).join('')}
-    </div>
+    <div id="package-choice-group" class="rounded-3xl">
+      <div id="package-options" class="mt-6 space-y-4">
+        ${Object.values(PACKAGES).map(pkg => `
+          <button type="button" class="interactive block w-full text-left border-2 border-ink/15 rounded-2xl p-4 cursor-pointer package-option" data-package-id="${pkg.id}">
+            <div class="flex items-center justify-between">
+              <span class="font-sans font-semibold text-ink">${pkg.name}</span>
+              <span class="font-sans font-semibold text-terracotta">$${pkg.price}</span>
+            </div>
+            <p class="mt-1 font-sans text-sm text-ink/60">${pkg.description} · ${pkg.sessionLength}</p>
+          </button>
+        `).join('')}
+      </div>
 
-    <label id="curation-addon-label" class="interactive mt-4 flex items-center gap-2 border border-ink/15 rounded-2xl p-4 cursor-pointer">
-      <input type="checkbox" id="curation-addon-toggle" />
-      <span class="font-sans text-sm text-ink">${CURATION_ADDON.name} (+$${CURATION_ADDON.price}) — ${CURATION_ADDON.description}</span>
-    </label>
-
-    <p id="shoot-notes-bottom" class="mt-4 font-sans text-xs text-ink/50">Every shoot mixes film and phone camera — we recommend your app photos lean about 75% phone, 25% film, depending on your vibe.</p>
-
-    <div class="mt-6 border-t border-ink/10 pt-6">
-      <label class="interactive flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" id="consult-only-toggle" class="mt-1" />
-        <span>
-          <span class="block font-sans text-sm font-semibold text-ink">I don't want new pictures — just the app consultation (+$${CONSULT_ONLY.price})</span>
-          <span class="block font-sans text-xs text-ink/60 mt-1">${CONSULT_ONLY.description}</span>
-        </span>
+      <label id="curation-addon-label" class="interactive mt-4 flex items-center gap-2 border border-ink/15 rounded-2xl p-4 cursor-pointer">
+        <input type="checkbox" id="curation-addon-toggle" />
+        <span class="font-sans text-sm text-ink">${CURATION_ADDON.name} (+$${CURATION_ADDON.price}) · ${CURATION_ADDON.description}</span>
       </label>
+
+      <p id="shoot-notes-bottom" class="mt-4 font-sans text-xs text-ink/50">Every shoot mixes film and phone camera. We recommend your app photos lean about 75% phone, 25% film, depending on your vibe.</p>
+
+      <div class="mt-6 border-t border-ink/10 pt-6">
+        <label class="interactive flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" id="consult-only-toggle" class="mt-1" />
+          <span>
+            <span class="block font-sans text-sm font-semibold text-ink">I don't want new pictures, just the app consultation (+$${CONSULT_ONLY.price})</span>
+            <span class="block font-sans text-xs text-ink/60 mt-1">${CONSULT_ONLY.description}</span>
+          </span>
+        </label>
+      </div>
     </div>
+
+    <p id="package-error" class="hidden mt-3 font-sans text-xs text-red-600">Please choose a package or the consultation-only option.</p>
 
     <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
       <span>Total</span>
@@ -162,12 +202,20 @@ function renderPackageStep() {
     </div>
     <div class="mt-6 grid grid-cols-2 gap-3">
       <button id="package-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
-      <button id="package-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+      <button id="package-next" class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Next</button>
     </div>
   `;
 
-  function checkPackageValid() {
-    document.getElementById('package-next').disabled = !(bookingState.consultOnly || bookingState.packageId);
+  let packageAttempted = false;
+
+  function validatePackageStep(showErrors) {
+    const valid = Boolean(bookingState.consultOnly || bookingState.packageId);
+    if (showErrors) {
+      document.getElementById('package-choice-group').classList.toggle('ring-2', !valid);
+      document.getElementById('package-choice-group').classList.toggle('ring-red-500', !valid);
+      document.getElementById('package-error').classList.toggle('hidden', valid);
+    }
+    return valid;
   }
 
   el.querySelectorAll('.package-option').forEach(btn => {
@@ -176,7 +224,7 @@ function renderPackageStep() {
       el.querySelectorAll('.package-option').forEach(b => b.classList.remove('border-terracotta'));
       btn.classList.add('border-terracotta');
       updatePriceTally();
-      checkPackageValid();
+      validatePackageStep(packageAttempted);
     });
   });
 
@@ -203,62 +251,97 @@ function renderPackageStep() {
     }
 
     updatePriceTally();
-    checkPackageValid();
+    validatePackageStep(packageAttempted);
   });
 
   document.getElementById('package-back').addEventListener('click', () => goToStep('contact'));
 
   document.getElementById('package-next').addEventListener('click', () => {
+    packageAttempted = true;
+    if (!validatePackageStep(true)) return;
     submitProgress();
-    renderScheduleStep();
-    goToStep('schedule');
+    renderAvailabilityStep();
+    goToStep('availability');
   });
 }
 
-function renderScheduleStep() {
-  const el = document.getElementById('booking-step-schedule');
+function renderAvailabilityStep() {
+  const el = document.getElementById('booking-step-availability');
   const pkg = PACKAGES[bookingState.packageId];
   const durationText = bookingState.consultOnly
     ? `Your app consultation runs about ${CONSULT_ONLY.slotMinutes} minutes.`
     : (pkg ? `Your ${pkg.name} session runs about ${getSlotMinutes(bookingState.packageId)} minutes.` : '');
   el.innerHTML = `
-    <h2 class="font-display text-2xl font-semibold text-ink">Pick a date</h2>
-    <p class="mt-1 font-sans text-sm text-ink/60">${durationText}</p>
-    <input id="input-date" type="date" value="${bookingState.date || ''}" class="interactive mt-6 w-full border border-ink/20 rounded-xl px-4 py-3 font-sans" />
-    <div class="mt-6 grid grid-cols-3 gap-3">
-      ${DAY_PARTS.map(part => `
-        <button type="button" class="daypart-option interactive border-2 ${bookingState.dayPart === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-day-part="${part}">${part}</button>
-      `).join('')}
+    <h2 class="font-display text-2xl font-semibold text-ink">When are you generally available?</h2>
+    <p class="mt-1 font-sans text-sm text-ink/60">${durationText} We'll reach out directly to lock in your exact session time, so we just need your general availability.</p>
+
+    <div class="mt-6">
+      <p class="font-sans text-sm font-semibold text-ink mb-2">Weekdays</p>
+      <div id="weekday-options" class="grid grid-cols-2 gap-3 rounded-2xl">
+        ${DAY_PARTS.map(part => `
+          <button type="button" class="weekday-option interactive border-2 ${bookingState.weekdayAvailability === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
+        `).join('')}
+      </div>
     </div>
-    <p class="mt-4 font-sans text-xs text-ink/50">This is your preferred window — we'll follow up to confirm your exact time.</p>
+
+    <div class="mt-6">
+      <p class="font-sans text-sm font-semibold text-ink mb-2">Weekends</p>
+      <div id="weekend-options" class="grid grid-cols-2 gap-3 rounded-2xl">
+        ${DAY_PARTS.map(part => `
+          <button type="button" class="weekend-option interactive border-2 ${bookingState.weekendAvailability === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
+        `).join('')}
+      </div>
+    </div>
+
+    <p id="availability-error" class="hidden mt-4 font-sans text-xs text-red-600">Please choose your weekday and weekend availability. You can't be unavailable for both.</p>
+
     <div class="mt-8 grid grid-cols-2 gap-3">
-      <button id="schedule-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
-      <button id="schedule-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+      <button id="availability-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
+      <button id="availability-next" class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Next</button>
     </div>
   `;
 
-  function checkScheduleValid() {
-    document.getElementById('schedule-next').disabled = !(bookingState.date && bookingState.dayPart);
-  }
-  checkScheduleValid();
+  let availabilityAttempted = false;
 
-  el.querySelectorAll('.daypart-option').forEach(btn => {
+  function validateAvailabilityStep(showErrors) {
+    const bothChosen = Boolean(bookingState.weekdayAvailability && bookingState.weekendAvailability);
+    const bothUnavailable = bookingState.weekdayAvailability === 'Unavailable' && bookingState.weekendAvailability === 'Unavailable';
+    const valid = bothChosen && !bothUnavailable;
+    if (showErrors) {
+      const weekdayInvalid = !bookingState.weekdayAvailability || bothUnavailable;
+      const weekendInvalid = !bookingState.weekendAvailability || bothUnavailable;
+      document.getElementById('weekday-options').classList.toggle('ring-2', weekdayInvalid);
+      document.getElementById('weekday-options').classList.toggle('ring-red-500', weekdayInvalid);
+      document.getElementById('weekend-options').classList.toggle('ring-2', weekendInvalid);
+      document.getElementById('weekend-options').classList.toggle('ring-red-500', weekendInvalid);
+      document.getElementById('availability-error').classList.toggle('hidden', valid);
+    }
+    return valid;
+  }
+
+  el.querySelectorAll('.weekday-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      bookingState.dayPart = btn.dataset.dayPart;
-      el.querySelectorAll('.daypart-option').forEach(b => b.classList.remove('border-terracotta'));
+      bookingState.weekdayAvailability = btn.dataset.part;
+      el.querySelectorAll('.weekday-option').forEach(b => b.classList.remove('border-terracotta'));
       btn.classList.add('border-terracotta');
-      checkScheduleValid();
+      validateAvailabilityStep(availabilityAttempted);
     });
   });
 
-  document.getElementById('input-date').addEventListener('change', (e) => {
-    bookingState.date = e.target.value;
-    checkScheduleValid();
+  el.querySelectorAll('.weekend-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bookingState.weekendAvailability = btn.dataset.part;
+      el.querySelectorAll('.weekend-option').forEach(b => b.classList.remove('border-terracotta'));
+      btn.classList.add('border-terracotta');
+      validateAvailabilityStep(availabilityAttempted);
+    });
   });
 
-  document.getElementById('schedule-back').addEventListener('click', () => goToStep('package'));
+  document.getElementById('availability-back').addEventListener('click', () => goToStep('package'));
 
-  document.getElementById('schedule-next').addEventListener('click', () => {
+  document.getElementById('availability-next').addEventListener('click', () => {
+    availabilityAttempted = true;
+    if (!validateAvailabilityStep(true)) return;
     submitProgress();
     goToStep('intake');
   });
@@ -267,30 +350,52 @@ function renderScheduleStep() {
 function renderIntakeStep() {
   const el = document.getElementById('booking-step-intake');
   el.innerHTML = `
-    <h2 class="font-display text-2xl font-semibold text-ink">What are you hoping to get out of this?</h2>
-    <div class="mt-6 space-y-3">
+    <h2 class="font-display text-2xl font-semibold text-ink">What do you hope to get out of a better dating profile?</h2>
+    <p class="mt-1 font-sans text-sm text-ink/60">Select all that apply.</p>
+    <div id="intake-options" class="mt-6 space-y-3 rounded-2xl">
       ${INTAKE_OPTIONS.map(opt => `
         <button type="button" class="intake-option interactive block w-full text-left border-2 border-ink/15 rounded-xl px-4 py-3 font-sans text-sm" data-intake-id="${opt.id}">${opt.label}</button>
       `).join('')}
     </div>
+    <p id="intake-error" class="hidden mt-3 font-sans text-xs text-red-600">Please select at least one option.</p>
     <div class="mt-8 grid grid-cols-2 gap-3">
       <button id="intake-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
-      <button id="intake-next" disabled class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+      <button id="intake-next" class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Next</button>
     </div>
   `;
 
+  let intakeAttempted = false;
+
+  function validateIntakeStep(showErrors) {
+    const valid = bookingState.intake.length > 0;
+    if (showErrors) {
+      document.getElementById('intake-options').classList.toggle('ring-2', !valid);
+      document.getElementById('intake-options').classList.toggle('ring-red-500', !valid);
+      document.getElementById('intake-error').classList.toggle('hidden', valid);
+    }
+    return valid;
+  }
+
   el.querySelectorAll('.intake-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      bookingState.intake = btn.dataset.intakeId;
-      el.querySelectorAll('.intake-option').forEach(b => b.classList.remove('border-terracotta'));
-      btn.classList.add('border-terracotta');
-      document.getElementById('intake-next').disabled = false;
+      const id = btn.dataset.intakeId;
+      const idx = bookingState.intake.indexOf(id);
+      if (idx === -1) {
+        bookingState.intake.push(id);
+        btn.classList.add('border-terracotta');
+      } else {
+        bookingState.intake.splice(idx, 1);
+        btn.classList.remove('border-terracotta');
+      }
+      validateIntakeStep(intakeAttempted);
     });
   });
 
-  document.getElementById('intake-back').addEventListener('click', () => goToStep('schedule'));
+  document.getElementById('intake-back').addEventListener('click', () => goToStep('availability'));
 
   document.getElementById('intake-next').addEventListener('click', () => {
+    intakeAttempted = true;
+    if (!validateIntakeStep(true)) return;
     submitProgress();
     renderConfirmStep();
     goToStep('confirm');
@@ -304,18 +409,26 @@ function renderConfirmStep() {
   const offeringLabel = bookingState.consultOnly
     ? CONSULT_ONLY.name
     : `${pkg.name}${bookingState.curationAddon ? ` + ${CURATION_ADDON.name}` : ''}`;
+  const intakeLabels = bookingState.intake
+    .map(id => INTAKE_OPTIONS.find(opt => opt.id === id)?.label)
+    .filter(Boolean)
+    .join(', ');
   el.innerHTML = `
-    <h2 class="font-display text-2xl font-semibold text-ink">You're all set</h2>
+    <h2 class="font-display text-2xl font-semibold text-ink">Review your details</h2>
+    <p class="mt-1 font-sans text-sm text-ink/60">Take a look, then confirm below.</p>
     <div class="mt-6 space-y-2 font-sans text-sm text-ink/70">
-      <p>${bookingState.firstName} ${bookingState.lastName} — ${bookingState.email} — ${bookingState.zip}</p>
+      <p>${bookingState.firstName} ${bookingState.lastName}</p>
+      <p>${bookingState.email}</p>
+      <p>${bookingState.zip}</p>
       <p>${offeringLabel}</p>
-      <p>${bookingState.date} (${bookingState.dayPart})</p>
+      <p>Weekdays: ${bookingState.weekdayAvailability}. Weekends: ${bookingState.weekendAvailability}.</p>
+      <p>${intakeLabels}</p>
     </div>
     <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
       <span>Total</span>
       <span>$${total}</span>
     </div>
-    <p class="mt-4 font-sans text-xs text-ink/50">We'll follow up to confirm your exact time.</p>
+    <p class="mt-4 font-sans text-xs text-ink/50">Once you confirm, you'll be all set. Expect to hear back from us soon to lock in the details.</p>
     <div class="mt-8 grid grid-cols-2 gap-3">
       <button id="confirm-back" type="button" class="interactive border-2 border-ink/15 text-ink font-sans font-semibold py-3 rounded-full hover:border-ink/30">Back</button>
       <button id="confirm-submit" class="interactive bg-terracotta text-cream font-sans font-semibold py-3 rounded-full shadow-elevated hover:bg-terracotta-dark">Confirm</button>
@@ -327,17 +440,17 @@ function renderConfirmStep() {
   document.getElementById('confirm-submit').addEventListener('click', async () => {
     const success = await submitProgress();
     if (success) {
-      // A completed booking should never share its sessionId with a future one — otherwise
+      // A completed booking should never share its sessionId with a future one, otherwise
       // the Apps Script backend's upsert-by-sessionId would overwrite this row on the next visit.
       localStorage.removeItem('restoreco_session_id');
       el.innerHTML = `
-        <h2 class="font-display text-2xl font-semibold text-ink">Thank you, ${bookingState.firstName}.</h2>
-        <p class="mt-4 font-sans text-sm text-ink/70">We'll be in touch soon to lock in your session.</p>
+        <h2 class="font-display text-2xl font-semibold text-ink">You're all set, ${bookingState.firstName}.</h2>
+        <p class="mt-4 font-sans text-sm text-ink/70">Expect to hear back from us soon to lock in your session.</p>
       `;
     } else {
       el.innerHTML = `
         <h2 class="font-display text-2xl font-semibold text-ink">Something went wrong</h2>
-        <p class="mt-4 font-sans text-sm text-ink/70">We couldn't save your booking — please try again or reach out to us directly.</p>
+        <p class="mt-4 font-sans text-sm text-ink/70">We couldn't save your booking. Please try again or reach out to us directly.</p>
       `;
     }
   });
@@ -361,7 +474,7 @@ function initBooking() {
   renderModalShell();
   renderContactStep();
   renderPackageStep();
-  renderScheduleStep();
+  renderAvailabilityStep();
   renderIntakeStep();
   document.querySelectorAll('.js-open-booking').forEach(btn => btn.addEventListener('click', openModal));
   document.getElementById('close-booking-modal').addEventListener('click', closeModal);

@@ -3,7 +3,7 @@ export const PACKAGES = {
     id: 'quick',
     name: 'Quick Shoot',
     price: 40,
-    description: "Perfect for Instagram or your dating app profile — arguably the best dating app there is.",
+    description: "One outfit. Perfect for Instagram or your dating app profile, arguably the best dating app there is.",
     sessionLength: '~15 min session',
     slotMinutes: 15,
   },
@@ -21,14 +21,14 @@ export const CURATION_ADDON = {
   id: 'curationAddon',
   name: 'App Curation Consultation',
   price: 50,
-  description: 'Post-shoot — we work on the right combination of your pictures and your prompts.',
+  description: 'Post-shoot: we work on the right combination of your pictures and your prompts.',
 };
 
 export const CONSULT_ONLY = {
   id: 'consultOnly',
   name: 'App Consultation Only',
   price: 50,
-  description: "No new photos — we consult on what you already have and help you build your strongest profile.",
+  description: "No new photos. We consult on what you already have and help you build your strongest profile.",
   slotMinutes: 30,
 };
 
@@ -37,9 +37,10 @@ export const INTAKE_OPTIONS = [
   { id: 'serious', label: 'Something serious' },
   { id: 'moreOptions', label: 'More options in general' },
   { id: 'gram', label: "Just want better photos for the 'gram" },
+  { id: 'feelBetter', label: 'I want to feel better about myself' },
 ];
 
-export const DAY_PARTS = ['Morning', 'Afternoon', 'Evening'];
+export const DAY_PARTS = ['Morning', 'Afternoon', 'Evening', 'Unavailable'];
 
 export function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
@@ -79,9 +80,9 @@ export function buildSheetPayload(state) {
     curationAddon: Boolean(state.curationAddon),
     consultOnly: Boolean(state.consultOnly),
     total: (state.packageId || state.consultOnly) ? calculateTotal(state.packageId, state.curationAddon, state.consultOnly) : 0,
-    date: state.date || '',
-    dayPart: state.dayPart || '',
-    intake: state.intake || '',
+    weekdayAvailability: state.weekdayAvailability || '',
+    weekendAvailability: state.weekendAvailability || '',
+    intake: Array.isArray(state.intake) ? state.intake.join(', ') : (state.intake || ''),
     submittedAt: new Date().toISOString(),
   };
 }

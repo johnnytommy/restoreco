@@ -31,27 +31,25 @@ try {
   await page.click('[data-package-id="quick"]');
   await page.click('#package-next');
 
-  await page.waitForSelector('#booking-step-schedule:not(.hidden)');
-  await page.$eval('#input-date', el => {
-    el.value = '2026-08-01';
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  await page.click('[data-day-part="Evening"]');
-  await page.click('#schedule-next');
+  await page.waitForSelector('#booking-step-availability:not(.hidden)');
+  await page.click('#weekday-options [data-part="Evening"]');
+  await page.click('#weekend-options [data-part="Morning"]');
+  await page.click('#availability-next');
 
   await page.waitForSelector('#booking-step-intake:not(.hidden)');
   await page.click('[data-intake-id="serious"]');
+  await page.click('[data-intake-id="feelBetter"]');
   await page.click('#intake-next');
 
   await page.waitForSelector('#booking-step-confirm:not(.hidden)');
   await page.click('#confirm-submit');
 
   if (capturedPayloads.length !== 5) {
-    throw new Error(`Expected 5 progressive submissions (Contact, Package, Schedule, Intake, Confirm), got ${capturedPayloads.length}`);
+    throw new Error(`Expected 5 progressive submissions (Contact, Package, Availability, Intake, Confirm), got ${capturedPayloads.length}`);
   }
 
   const last = capturedPayloads[capturedPayloads.length - 1];
-  if (last.packageId !== 'quick' || last.total !== 40 || last.intake !== 'serious' || last.dayPart !== 'Evening') {
+  if (last.packageId !== 'quick' || last.total !== 40 || last.intake !== 'serious, feelBetter' || last.weekdayAvailability !== 'Evening' || last.weekendAvailability !== 'Morning') {
     throw new Error(`Unexpected final payload: ${JSON.stringify(last)}`);
   }
   const distinctSessionIds = new Set(capturedPayloads.map(p => p.sessionId));

@@ -2,7 +2,7 @@ const SHEET_NAME = 'Bookings';
 const COLUMNS = [
   'sessionId', 'firstName', 'lastName', 'email', 'zip',
   'packageId', 'packageName', 'curationAddon', 'consultOnly', 'total',
-  'date', 'dayPart', 'intake', 'submittedAt',
+  'weekdayAvailability', 'weekendAvailability', 'intake', 'submittedAt',
 ];
 
 // Free-text fields the user can type directly; these must be escaped before being written to the
