@@ -62,8 +62,8 @@ test('buildSheetPayload computes the total and carries all fields', () => {
     packageId: 'full',
     curationAddon: true,
     consultOnly: false,
-    weekdayAvailability: 'Evening',
-    weekendAvailability: 'Morning',
+    weekdayAvailability: ['Evening', 'Morning'],
+    weekendAvailability: ['Morning'],
     intake: ['serious', 'feelBetter'],
   });
   assert.equal(payload.total, 125);
@@ -71,7 +71,7 @@ test('buildSheetPayload computes the total and carries all fields', () => {
   assert.equal(payload.sessionId, 'abc-123');
   assert.equal(payload.email, 'jamie@example.com');
   assert.equal(payload.zip, '10001');
-  assert.equal(payload.weekdayAvailability, 'Evening');
+  assert.equal(payload.weekdayAvailability, 'Evening, Morning');
   assert.equal(payload.weekendAvailability, 'Morning');
   assert.equal(payload.intake, 'serious, feelBetter');
   assert.ok(payload.submittedAt);

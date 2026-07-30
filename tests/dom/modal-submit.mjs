@@ -33,6 +33,7 @@ try {
 
   await page.waitForSelector('#booking-step-availability:not(.hidden)');
   await page.click('#weekday-options [data-part="Evening"]');
+  await page.click('#weekday-options [data-part="Morning"]');
   await page.click('#weekend-options [data-part="Morning"]');
   await page.click('#availability-next');
 
@@ -49,7 +50,7 @@ try {
   }
 
   const last = capturedPayloads[capturedPayloads.length - 1];
-  if (last.packageId !== 'quick' || last.total !== 40 || last.intake !== 'serious, feelBetter' || last.weekdayAvailability !== 'Evening' || last.weekendAvailability !== 'Morning') {
+  if (last.packageId !== 'quick' || last.total !== 40 || last.intake !== 'serious, feelBetter' || last.weekdayAvailability !== 'Evening, Morning' || last.weekendAvailability !== 'Morning') {
     throw new Error(`Unexpected final payload: ${JSON.stringify(last)}`);
   }
   const distinctSessionIds = new Set(capturedPayloads.map(p => p.sessionId));

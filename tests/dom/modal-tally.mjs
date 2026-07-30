@@ -33,7 +33,15 @@ try {
     throw new Error(`Expected consult-only tally of $50, got ${consultOnlyTally}`);
   }
 
-  console.log('PASS: price tally reflects Full Makeover + curation add-on, and consult-only flat price');
+  // Regression: unchecking consult-only (which clears packageId/curationAddon when it was
+  // checked) must reset the tally to $0, not leave the stale $50 on screen.
+  await page.click('#consult-only-toggle');
+  const uncheckedTally = await page.$eval('#price-tally', el => el.textContent);
+  if (uncheckedTally !== '$0') {
+    throw new Error(`Expected tally to reset to $0 after unchecking consult-only with no package selected, got ${uncheckedTally}`);
+  }
+
+  console.log('PASS: price tally reflects Full Makeover + curation add-on, consult-only flat price, and resets to $0 when unchecked');
 } finally {
   await browser.close();
 }

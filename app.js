@@ -23,8 +23,8 @@ const bookingState = {
   packageId: '',
   curationAddon: false,
   consultOnly: false,
-  weekdayAvailability: '',
-  weekendAvailability: '',
+  weekdayAvailability: [],
+  weekendAvailability: [],
   intake: [],
 };
 
@@ -152,8 +152,9 @@ function renderContactStep() {
 }
 
 function updatePriceTally() {
-  if (!bookingState.packageId && !bookingState.consultOnly) return;
-  const total = calculateTotal(bookingState.packageId, bookingState.curationAddon, bookingState.consultOnly);
+  const total = (bookingState.packageId || bookingState.consultOnly)
+    ? calculateTotal(bookingState.packageId, bookingState.curationAddon, bookingState.consultOnly)
+    : 0;
   document.getElementById('price-tally').textContent = `$${total}`;
 }
 
@@ -273,13 +274,13 @@ function renderAvailabilityStep() {
     : (pkg ? `Your ${pkg.name} session runs about ${getSlotMinutes(bookingState.packageId)} minutes.` : '');
   el.innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">When are you generally available?</h2>
-    <p class="mt-1 font-sans text-sm text-ink/60">${durationText} We'll reach out directly to lock in your exact session time, so we just need your general availability.</p>
+    <p class="mt-1 font-sans text-sm text-ink/60">${durationText} We'll reach out directly to lock in your exact session time, so we just need your general availability. Select all that apply.</p>
 
     <div class="mt-6">
       <p class="font-sans text-sm font-semibold text-ink mb-2">Weekdays</p>
       <div id="weekday-options" class="grid grid-cols-2 gap-3 rounded-2xl">
         ${DAY_PARTS.map(part => `
-          <button type="button" class="weekday-option interactive border-2 ${bookingState.weekdayAvailability === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
+          <button type="button" class="weekday-option interactive border-2 ${bookingState.weekdayAvailability.includes(part) ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
         `).join('')}
       </div>
     </div>
@@ -288,7 +289,7 @@ function renderAvailabilityStep() {
       <p class="font-sans text-sm font-semibold text-ink mb-2">Weekends</p>
       <div id="weekend-options" class="grid grid-cols-2 gap-3 rounded-2xl">
         ${DAY_PARTS.map(part => `
-          <button type="button" class="weekend-option interactive border-2 ${bookingState.weekendAvailability === part ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
+          <button type="button" class="weekend-option interactive border-2 ${bookingState.weekendAvailability.includes(part) ? 'border-terracotta' : 'border-ink/15'} rounded-xl py-3 font-sans text-sm" data-part="${part}">${part}</button>
         `).join('')}
       </div>
     </div>
@@ -303,13 +304,24 @@ function renderAvailabilityStep() {
 
   let availabilityAttempted = false;
 
+  function togglePart(field, part) {
+    const current = bookingState[field];
+    if (part === 'Unavailable') {
+      bookingState[field] = (current.length === 1 && current[0] === 'Unavailable') ? [] : ['Unavailable'];
+    } else if (current.includes(part)) {
+      bookingState[field] = current.filter(p => p !== part);
+    } else {
+      bookingState[field] = [...current.filter(p => p !== 'Unavailable'), part];
+    }
+  }
+
   function validateAvailabilityStep(showErrors) {
-    const bothChosen = Boolean(bookingState.weekdayAvailability && bookingState.weekendAvailability);
-    const bothUnavailable = bookingState.weekdayAvailability === 'Unavailable' && bookingState.weekendAvailability === 'Unavailable';
+    const bothChosen = bookingState.weekdayAvailability.length > 0 && bookingState.weekendAvailability.length > 0;
+    const bothUnavailable = bookingState.weekdayAvailability.includes('Unavailable') && bookingState.weekendAvailability.includes('Unavailable');
     const valid = bothChosen && !bothUnavailable;
     if (showErrors) {
-      const weekdayInvalid = !bookingState.weekdayAvailability || bothUnavailable;
-      const weekendInvalid = !bookingState.weekendAvailability || bothUnavailable;
+      const weekdayInvalid = bookingState.weekdayAvailability.length === 0 || bothUnavailable;
+      const weekendInvalid = bookingState.weekendAvailability.length === 0 || bothUnavailable;
       document.getElementById('weekday-options').classList.toggle('ring-2', weekdayInvalid);
       document.getElementById('weekday-options').classList.toggle('ring-red-500', weekdayInvalid);
       document.getElementById('weekend-options').classList.toggle('ring-2', weekendInvalid);
@@ -321,18 +333,22 @@ function renderAvailabilityStep() {
 
   el.querySelectorAll('.weekday-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      bookingState.weekdayAvailability = btn.dataset.part;
-      el.querySelectorAll('.weekday-option').forEach(b => b.classList.remove('border-terracotta'));
-      btn.classList.add('border-terracotta');
+      togglePart('weekdayAvailability', btn.dataset.part);
+      el.querySelectorAll('.weekday-option').forEach(b => {
+        b.classList.toggle('border-terracotta', bookingState.weekdayAvailability.includes(b.dataset.part));
+        b.classList.toggle('border-ink/15', !bookingState.weekdayAvailability.includes(b.dataset.part));
+      });
       validateAvailabilityStep(availabilityAttempted);
     });
   });
 
   el.querySelectorAll('.weekend-option').forEach(btn => {
     btn.addEventListener('click', () => {
-      bookingState.weekendAvailability = btn.dataset.part;
-      el.querySelectorAll('.weekend-option').forEach(b => b.classList.remove('border-terracotta'));
-      btn.classList.add('border-terracotta');
+      togglePart('weekendAvailability', btn.dataset.part);
+      el.querySelectorAll('.weekend-option').forEach(b => {
+        b.classList.toggle('border-terracotta', bookingState.weekendAvailability.includes(b.dataset.part));
+        b.classList.toggle('border-ink/15', !bookingState.weekendAvailability.includes(b.dataset.part));
+      });
       validateAvailabilityStep(availabilityAttempted);
     });
   });
@@ -413,16 +429,20 @@ function renderConfirmStep() {
     .map(id => INTAKE_OPTIONS.find(opt => opt.id === id)?.label)
     .filter(Boolean)
     .join(', ');
+  const reviewRow = (label, value) => `
+    <p><span class="font-sans font-semibold text-ink">${label}:</span> <span class="font-sans text-sm text-ink/70">${value}</span></p>
+  `;
   el.innerHTML = `
     <h2 class="font-display text-2xl font-semibold text-ink">Review your details</h2>
     <p class="mt-1 font-sans text-sm text-ink/60">Take a look, then confirm below.</p>
-    <div class="mt-6 space-y-2 font-sans text-sm text-ink/70">
-      <p>${bookingState.firstName} ${bookingState.lastName}</p>
-      <p>${bookingState.email}</p>
-      <p>${bookingState.zip}</p>
-      <p>${offeringLabel}</p>
-      <p>Weekdays: ${bookingState.weekdayAvailability}. Weekends: ${bookingState.weekendAvailability}.</p>
-      <p>${intakeLabels}</p>
+    <div class="mt-6 space-y-2">
+      ${reviewRow('Name', `${bookingState.firstName} ${bookingState.lastName}`)}
+      ${reviewRow('Email', bookingState.email)}
+      ${reviewRow('ZIP', bookingState.zip)}
+      ${reviewRow('Package', offeringLabel)}
+      ${reviewRow('Weekday availability', bookingState.weekdayAvailability.join(', '))}
+      ${reviewRow('Weekend availability', bookingState.weekendAvailability.join(', '))}
+      ${reviewRow('Goals', intakeLabels)}
     </div>
     <div class="mt-6 flex items-center justify-between font-display text-xl font-semibold text-ink">
       <span>Total</span>
