@@ -53,6 +53,11 @@ try {
   if (last.packageId !== 'quick' || last.total !== 40 || last.intake !== 'serious, feelBetter' || last.weekdayAvailability !== 'Evening, Morning' || last.weekendAvailability !== 'Morning') {
     throw new Error(`Unexpected final payload: ${JSON.stringify(last)}`);
   }
+  // localhost must never be tagged as prod, that would write test bookings into the real
+  // Prod Bookings tab instead of Dev Bookings.
+  if (!capturedPayloads.every(p => p.environment === 'dev')) {
+    throw new Error(`Expected every payload to carry environment: 'dev' on localhost, got: ${JSON.stringify(capturedPayloads.map(p => p.environment))}`);
+  }
   const distinctSessionIds = new Set(capturedPayloads.map(p => p.sessionId));
   if (distinctSessionIds.size !== 1) {
     throw new Error(`Expected one sessionId across all progressive submissions, got ${distinctSessionIds.size}`);

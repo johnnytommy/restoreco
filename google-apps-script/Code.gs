@@ -1,4 +1,4 @@
-const SHEET_NAME = 'Bookings';
+const SHEET_NAMES = { prod: 'Prod Bookings', dev: 'Dev Bookings' };
 const COLUMNS = [
   'sessionId', 'firstName', 'lastName', 'email', 'zip',
   'packageId', 'packageName', 'curationAddon', 'consultOnly', 'total',
@@ -30,10 +30,14 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Anything other than exactly 'prod' writes to Dev Bookings, so a missing or unexpected
+  // environment value can never accidentally land in the prod tab.
+  const environment = data.environment === 'prod' ? 'prod' : 'dev';
+
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const sheet = getSheet();
+    const sheet = getSheet(environment);
     const rows = sheet.getDataRange().getValues();
     const sessionIdCol = COLUMNS.indexOf('sessionId');
 
@@ -64,11 +68,12 @@ function doPost(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function getSheet() {
+function getSheet(environment) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
+  const sheetName = SHEET_NAMES[environment];
+  let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
+    sheet = ss.insertSheet(sheetName);
     sheet.appendRow(COLUMNS);
   }
   return sheet;

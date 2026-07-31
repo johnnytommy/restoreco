@@ -1,18 +1,20 @@
 import { HERO_IMAGES, FOUNDERS, TESTIMONIALS } from './content.js';
 import { PACKAGES, CURATION_ADDON, CONSULT_ONLY, DAY_PARTS, INTAKE_OPTIONS, calculateTotal, getSlotMinutes, generateSessionId, buildSheetPayload, isValidEmail, isValidNycZip } from './booking.js';
 
-// Production writes to the real Restore Co. Bookings sheet. Every other host (localhost,
-// Vercel preview deployments, anything else) writes to a separate dev sheet instead, so
-// local/preview testing never touches production lead data. See google-apps-script/SETUP.md.
-const PROD_HOSTNAME = 'restoreco.vercel.app';
-const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_DEV_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
-const SHEETS_WEBAPP_URL_PROD = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
-const SHEETS_WEBAPP_URL_DEV = 'https://script.google.com/macros/s/AKfycbzNHcMmU0iv3gmuQTPv-6f9lD5uuKiVwxqGnkiTc3Wk1MSx-gZHKnBIEWL5hGsqi601CQ/exec';
+// Every booking POSTs to the same Apps Script deployment, which writes into one of two tabs
+// ("Prod Bookings" or "Dev Bookings") in a single Google Sheet, based on the `environment` field
+// below. Until PROD_HOSTNAME is set to the real official domain, it can't match anything, so
+// every host (localhost, this Vercel deployment, previews) writes to Dev Bookings. See
+// google-apps-script/SETUP.md.
+const PROD_HOSTNAME_PLACEHOLDER = 'PASTE_YOUR_OFFICIAL_PRODUCTION_DOMAIN_HERE';
+const PROD_HOSTNAME = PROD_HOSTNAME_PLACEHOLDER;
+const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
+const SHEETS_WEBAPP_URL_CONFIGURED = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
 
 const isProdHost = typeof window !== 'undefined' && window.location.hostname === PROD_HOSTNAME;
 // window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
 // smoke tests simulate a configured deployment without editing this file.
-const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || (isProdHost ? SHEETS_WEBAPP_URL_PROD : SHEETS_WEBAPP_URL_DEV);
+const SHEETS_WEBAPP_URL = (typeof window !== 'undefined' && window.__RESTORECO_TEST_WEBAPP_URL__) || SHEETS_WEBAPP_URL_CONFIGURED;
 
 const bookingState = {
   sessionId: null,
@@ -51,7 +53,7 @@ async function submitProgress() {
     console.warn('Restore Co: SHEETS_WEBAPP_URL is still the placeholder, booking was not sent. See google-apps-script/SETUP.md.');
     return false;
   }
-  const payload = buildSheetPayload(bookingState);
+  const payload = { ...buildSheetPayload(bookingState), environment: isProdHost ? 'prod' : 'dev' };
   try {
     await fetch(SHEETS_WEBAPP_URL, {
       method: 'POST',
