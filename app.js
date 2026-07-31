@@ -9,7 +9,7 @@ import { PACKAGES, CURATION_ADDON, CONSULT_ONLY, DAY_PARTS, INTAKE_OPTIONS, calc
 const PROD_HOSTNAME_PLACEHOLDER = 'PASTE_YOUR_OFFICIAL_PRODUCTION_DOMAIN_HERE';
 const PROD_HOSTNAME = PROD_HOSTNAME_PLACEHOLDER;
 const SHEETS_WEBAPP_URL_PLACEHOLDER = 'PASTE_YOUR_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
-const SHEETS_WEBAPP_URL_CONFIGURED = 'https://script.google.com/macros/s/AKfycbxtUf7-zZIdCj7o8PcYgj04qJUJSP-NmR2ZVDtRXp8vIWwwZpaquh5RY9J9TChgwGZy/exec';
+const SHEETS_WEBAPP_URL_CONFIGURED = 'https://script.google.com/macros/s/AKfycbw1sZ4Q0SzwxmiyIPi-sNvH6ZIzPUMuvuQKHczrFyAhBB2x3fTlqVjZe8b8WwTDzuqs/exec';
 
 const isProdHost = typeof window !== 'undefined' && window.location.hostname === PROD_HOSTNAME;
 // window.__RESTORECO_TEST_WEBAPP_URL__ is a test-only seam (see tests/dom/modal-submit.mjs) that lets
