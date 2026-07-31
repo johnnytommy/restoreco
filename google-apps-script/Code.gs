@@ -1,6 +1,6 @@
 const SHEET_NAMES = { prod: 'Prod Bookings', dev: 'Dev Bookings' };
 const COLUMNS = [
-  'sessionId', 'firstName', 'lastName', 'email', 'zip',
+  'sessionId', 'hostname', 'firstName', 'lastName', 'email', 'zip',
   'packageId', 'packageName', 'curationAddon', 'consultOnly', 'total',
   'weekdayAvailability', 'weekendAvailability', 'intake', 'submittedAt',
 ];

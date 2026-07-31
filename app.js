@@ -53,7 +53,11 @@ async function submitProgress() {
     console.warn('Restore Co: SHEETS_WEBAPP_URL is still the placeholder, booking was not sent. See google-apps-script/SETUP.md.');
     return false;
   }
-  const payload = { ...buildSheetPayload(bookingState), environment: isProdHost ? 'prod' : 'dev' };
+  const payload = {
+    ...buildSheetPayload(bookingState),
+    environment: isProdHost ? 'prod' : 'dev',
+    hostname: typeof window !== 'undefined' ? window.location.hostname : '',
+  };
   try {
     await fetch(SHEETS_WEBAPP_URL, {
       method: 'POST',
